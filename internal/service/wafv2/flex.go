@@ -515,6 +515,236 @@ func expandIPSetForwardedIPConfig(l []interface{}) *wafv2.IPSetForwardedIPConfig
 	}
 }
 
+//----------custom
+/*
+func expandRuleLabels(l []interface{}) []*wafv2.Label {
+	if len(l) == 0 || l[0] == nil {
+		return nil
+	}
+
+	labels := make([]*wafv2.Label, 0)
+
+	for _, label := range l {
+		if label == nil {
+			continue
+		}
+		m := label.(map[string]interface{})
+		labels = append(labels, &wafv2.Label{
+			Name: aws.String(m["name"].(string)),
+		})
+	}
+
+	return labels
+}
+
+
+func expandCustomKeys(l []interface{}) *wafv2.RateBasedStatementCustomKey {
+	if len(l) == 0 || l[0] == nil {
+		return nil
+	}
+
+	customKeys := make([]*wafv2.RateBasedStatementCustomKey, 0)
+
+	m := l[0].(map[string]interface{})
+
+	cookies := &wafv2.Cookies{
+		MatchScope:       aws.String(m["match_scope"].(string)),
+		OversizeHandling: aws.String(m["oversize_handling"].(string)),
+	}
+
+	if v, ok := m["match_pattern"]; ok && len(v.([]interface{})) > 0 {
+		cookies.MatchPattern = expandCookieMatchPattern(v.([]interface{}))
+	}
+
+	return cookies
+}*/
+
+// good
+func expandCustomKeys(l []interface{}) []*wafv2.RateBasedStatementCustomKey {
+	if len(l) == 0 || l[0] == nil {
+		return nil
+	}
+
+	rules := make([]*wafv2.RateBasedStatementCustomKey, 0)
+
+	for _, rule := range l {
+		if rule == nil {
+			continue
+		}
+		rules = append(rules, expandCustomKey(rule.([]interface{})))
+	}
+
+	return rules
+}
+
+/*
+func expandCustomKey1(l []interface{}) *wafv2.RateBasedStatementCustomKey {
+	if len(l) == 0 || l[0] == nil {
+		return nil
+	}
+
+	customKeys := make([]*wafv2.RateBasedStatementCustomKey, 0)
+
+	m := l[0].(map[string]interface{})
+
+	cookies := &wafv2.Cookies{
+		MatchScope:       aws.String(m["match_scope"].(string)),
+		OversizeHandling: aws.String(m["oversize_handling"].(string)),
+	}
+
+	if v, ok := m["match_pattern"]; ok && len(v.([]interface{})) > 0 {
+		cookies.MatchPattern = expandCookieMatchPattern(v.([]interface{}))
+	}
+
+	return cookies
+}*/
+
+// good
+func expandCustomKey(l []interface{}) *wafv2.RateBasedStatementCustomKey {
+	if len(l) == 0 || l[0] == nil {
+		return nil
+	}
+
+	m := l[0].(map[string]interface{})
+	f := &wafv2.RateBasedStatementCustomKey{}
+
+	if v, ok := m["header"]; ok && len(v.([]interface{})) > 0 {
+		f.Header = expandRateLimitHeader(v.([]interface{}))
+	}
+
+	if v, ok := m["cookie"]; ok && len(v.([]interface{})) > 0 {
+		f.Cookie = expandRateLimitCookie(v.([]interface{}))
+	}
+
+	if v, ok := m["query_argument"]; ok && len(v.([]interface{})) > 0 {
+		f.QueryArgument = expandRateLimitQueryArgument(v.([]interface{}))
+	}
+
+	if v, ok := m["query_string"]; ok && len(v.([]interface{})) > 0 {
+		f.QueryString = expandRateLimitQueryString(v.([]interface{}))
+	}
+
+	if v, ok := m["http_method"]; ok && len(v.([]interface{})) > 0 {
+		f.HTTPMethod = &wafv2.RateLimitHTTPMethod{}
+	}
+
+	if v, ok := m["forwarded_ip"]; ok && len(v.([]interface{})) > 0 {
+		f.ForwardedIP = &wafv2.RateLimitForwardedIP{}
+	}
+
+	if v, ok := m["ip"]; ok && len(v.([]interface{})) > 0 {
+		f.IP = &wafv2.RateLimitIP{}
+	}
+
+	if v, ok := m["label_namespace"]; ok && len(v.([]interface{})) > 0 {
+		f.LabelNamespace = expandRateLimitLabelNamespace(v.([]interface{}))
+	}
+
+	return f
+}
+
+//----
+/*
+func expandTextTransformations(l []interface{}) []*wafv2.TextTransformation {
+	if len(l) == 0 || l[0] == nil {
+		return nil
+	}
+
+	rules := make([]*wafv2.TextTransformation, 0)
+
+	for _, rule := range l {
+		if rule == nil {
+			continue
+		}
+		rules = append(rules, expandTextTransformation(rule.(map[string]interface{})))
+	}
+
+	return rules
+}
+
+
+func expandTextTransformations(l []interface{}) []*wafv2.TextTransformation {
+	if len(l) == 0 || l[0] == nil {
+		return nil
+	}
+
+	rules := make([]*wafv2.Rate, 0)
+
+	for _, rule := range l {
+		if rule == nil {
+			continue
+		}
+		rules = append(rules, expandTextTransformation(rule.(map[string]interface{})))
+	}
+
+	return rules
+}
+
+func expandTextTransformation(m map[string]interface{}) *wafv2.TextTransformation {
+	if m == nil {
+		return nil
+	}
+
+	return &wafv2.TextTransformation{
+		Priority: aws.Int64(int64(m["priority"].(int))),
+		Type:     aws.String(m["type"].(string)),
+	}
+}
+
+
+////////////////////
+func expandFieldToMatch(l []interface{}) *wafv2.FieldToMatch {
+	if len(l) == 0 || l[0] == nil {
+		return nil
+	}
+
+	m := l[0].(map[string]interface{})
+	f := &wafv2.FieldToMatch{}
+
+	if v, ok := m["all_query_arguments"]; ok && len(v.([]interface{})) > 0 {
+		f.AllQueryArguments = &wafv2.AllQueryArguments{}
+	}
+
+	if v, ok := m["body"]; ok && len(v.([]interface{})) > 0 {
+		f.Body = expandBody(v.([]interface{}))
+	}
+
+	if v, ok := m["cookies"]; ok && len(v.([]interface{})) > 0 {
+		f.Cookies = expandCookies(m["cookies"].([]interface{}))
+	}
+
+	if v, ok := m["headers"]; ok && len(v.([]interface{})) > 0 {
+		f.Headers = expandHeaders(m["headers"].([]interface{}))
+	}
+
+	if v, ok := m["json_body"]; ok && len(v.([]interface{})) > 0 {
+		f.JsonBody = expandJSONBody(v.([]interface{}))
+	}
+
+	if v, ok := m["method"]; ok && len(v.([]interface{})) > 0 {
+		f.Method = &wafv2.Method{}
+	}
+
+	if v, ok := m["query_string"]; ok && len(v.([]interface{})) > 0 {
+		f.QueryString = &wafv2.QueryString{}
+	}
+
+	if v, ok := m["single_header"]; ok && len(v.([]interface{})) > 0 {
+		f.SingleHeader = expandSingleHeader(m["single_header"].([]interface{}))
+	}
+
+	if v, ok := m["single_query_argument"]; ok && len(v.([]interface{})) > 0 {
+		f.SingleQueryArgument = expandSingleQueryArgument(m["single_query_argument"].([]interface{}))
+	}
+
+	if v, ok := m["uri_path"]; ok && len(v.([]interface{})) > 0 {
+		f.UriPath = &wafv2.UriPath{}
+	}
+
+	return f
+}
+*/
+
 func expandCookies(l []interface{}) *wafv2.Cookies {
 	if len(l) == 0 || l[0] == nil {
 		return nil
@@ -591,6 +821,69 @@ func expandBody(l []interface{}) *wafv2.Body {
 	}
 
 	return body
+}
+
+func expandRateLimitHeader(l []interface{}) *wafv2.RateLimitHeader {
+	if len(l) == 0 || l[0] == nil {
+		return nil
+	}
+
+	m := l[0].(map[string]interface{})
+
+	return &wafv2.RateLimitHeader{
+		Name:                aws.String(m["name"].(string)),
+		TextTransformations: expandTextTransformations(m["text_transformation"].(*schema.Set).List()),
+	}
+}
+
+func expandRateLimitCookie(l []interface{}) *wafv2.RateLimitCookie {
+	if len(l) == 0 || l[0] == nil {
+		return nil
+	}
+
+	m := l[0].(map[string]interface{})
+
+	return &wafv2.RateLimitCookie{
+		Name:                aws.String(m["name"].(string)),
+		TextTransformations: expandTextTransformations(m["text_transformation"].(*schema.Set).List()),
+	}
+}
+
+func expandRateLimitQueryArgument(l []interface{}) *wafv2.RateLimitQueryArgument {
+	if len(l) == 0 || l[0] == nil {
+		return nil
+	}
+
+	m := l[0].(map[string]interface{})
+
+	return &wafv2.RateLimitQueryArgument{
+		Name:                aws.String(m["name"].(string)),
+		TextTransformations: expandTextTransformations(m["text_transformation"].(*schema.Set).List()),
+	}
+}
+
+func expandRateLimitQueryString(l []interface{}) *wafv2.RateLimitQueryString {
+	if len(l) == 0 || l[0] == nil {
+		return nil
+	}
+
+	m := l[0].(map[string]interface{})
+
+	return &wafv2.RateLimitQueryString{
+		TextTransformations: expandTextTransformations(m["text_transformation"].(*schema.Set).List()),
+	}
+}
+
+func expandRateLimitLabelNamespace(l []interface{}) *wafv2.RateLimitLabelNamespace {
+	if len(l) == 0 || l[0] == nil {
+		return nil
+	}
+
+	m := l[0].(map[string]interface{})
+
+	return &wafv2.RateLimitLabelNamespace{
+		Namespace: aws.String(m["namespace"].(string)),
+	}
 }
 
 func expandJSONMatchPattern(l []interface{}) *wafv2.JsonMatchPattern {
@@ -1248,6 +1541,18 @@ func expandRateBasedStatement(l []interface{}) *wafv2.RateBasedStatement {
 		r.ScopeDownStatement = expandStatement(s[0].(map[string]interface{}))
 	}
 
+	c := m["custom_keys"].([]interface{})
+	if len(s) > 0 && s[0] != nil {
+		//FieldToMatch:        expandFieldToMatch(m["field_to_match"].([]interface{})), m["custom_keys"].([]interface{})
+		//r.CustomKeys = expandCustomKeys(m["custom_keys"].()),
+		//r.CustomKeys = expandCustomKeys(m["custom_keys"].([]interface{}))),
+
+		//r.CustomKeys = expandCustomKeys(m["custom_keys"].([]interface{})),
+
+		//r.CustomKeys = expandCustomKeys(c[0].(map[string]interface{}))
+
+		r.CustomKeys = expandCustomKeys(c[0].([]interface{}))
+	}
 	return r
 }
 

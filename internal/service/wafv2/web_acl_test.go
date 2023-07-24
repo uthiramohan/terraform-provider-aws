@@ -1624,6 +1624,80 @@ func TestAccWAFV2WebACL_RateBased_forwardedIP(t *testing.T) {
 						"action.0.count.#":                   "1",
 						"statement.#":                        "1",
 						"statement.0.rate_based_statement.#": "1",
+						"statement.0.rate_based_statement.0.aggregate_key_type":                      "tytyfuFORWARDED_IP",
+						"statement.0.rate_based_statement.0.forwarded_ip_config.#":                   "1",
+						"statement.0.rate_based_statement.0.forwarded_ip_config.0.fallback_behavior": "NO_MATCH",
+						"statement.0.rate_based_statement.0.forwarded_ip_config.0.header_name":       "Updated",
+						"statement.0.rate_based_statement.0.limit":                                   "50000",
+						"statement.0.rate_based_statement.0.scope_down_statement.#":                  "0",
+					}),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: testAccWebACLImportStateIdFunc(resourceName),
+			},
+		},
+	})
+}
+
+//----
+
+func TestAccWAFV2WebACL_RateBased_CustomKeys(t *testing.T) {
+	//fmt.Sprintf("TestAccWAFV2WebACL_RateBased_CustomKeys ")
+	ctx := acctest.Context(t)
+	var v wafv2.WebACL
+	webACLName := sdkacctest.RandomWithPrefix(acctest.ResourcePrefix)
+	resourceName := "aws_wafv2_web_acl.test"
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { acctest.PreCheck(ctx, t); testAccPreCheckScopeRegional(ctx, t) },
+		ErrorCheck:               acctest.ErrorCheck(t, wafv2.EndpointsID),
+		ProtoV5ProviderFactories: acctest.ProtoV5ProviderFactories,
+		CheckDestroy:             testAccCheckWebACLDestroy(ctx),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccWebACLConfig_rateBasedStatementCustomKeys(webACLName, "MATCH", "X-Forwarded-For"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckWebACLExists(ctx, resourceName, &v),
+					acctest.MatchResourceAttrRegionalARN(resourceName, "arn", "wafv2", regexp.MustCompile(`regional/webacl/.+$`)),
+					resource.TestCheckResourceAttr(resourceName, "name", webACLName),
+					resource.TestCheckResourceAttr(resourceName, "rule.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(resourceName, "rule.*", map[string]string{
+						"name":                               "rule-1",
+						"action.#":                           "1",
+						"action.0.allow.#":                   "0",
+						"action.0.block.#":                   "0",
+						"action.0.count.#":                   "1",
+						"statement.#":                        "1",
+						"statement.0.rate_based_statement.#": "1",
+						"statement.0.rate_based_statement.0.aggregate_key_type":                      "FORWARDED_IP",
+						"statement.0.rate_based_statement.0.forwarded_ip_config.#":                   "1",
+						"statement.0.rate_based_statement.0.forwarded_ip_config.0.fallback_behavior": "MATCH",
+						"statement.0.rate_based_statement.0.forwarded_ip_config.0.header_name":       "X-Forwarded-For",
+						"statement.0.rate_based_statement.0.limit":                                   "50000",
+						"statement.0.rate_based_statement.0.scope_down_statement.#":                  "0",
+						"statement.0.rate_based_statement.0.custom_keys.0.header.0.name#":            "dummyheader",
+					}),
+				),
+			},
+			{
+				Config: testAccWebACLConfig_rateBasedStatementForwardedIP(webACLName, "NO_MATCH", "Updated"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckWebACLExists(ctx, resourceName, &v),
+					acctest.MatchResourceAttrRegionalARN(resourceName, "arn", "wafv2", regexp.MustCompile(`regional/webacl/.+$`)),
+					resource.TestCheckResourceAttr(resourceName, "name", webACLName),
+					resource.TestCheckResourceAttr(resourceName, "rule.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(resourceName, "rule.*", map[string]string{
+						"name":                               "rule-1",
+						"action.#":                           "1",
+						"action.0.allow.#":                   "0",
+						"action.0.block.#":                   "0",
+						"action.0.count.#":                   "1",
+						"statement.#":                        "1",
+						"statement.0.rate_based_statement.#": "1",
 						"statement.0.rate_based_statement.0.aggregate_key_type":                      "FORWARDED_IP",
 						"statement.0.rate_based_statement.0.forwarded_ip_config.#":                   "1",
 						"statement.0.rate_based_statement.0.forwarded_ip_config.0.fallback_behavior": "NO_MATCH",
@@ -1643,6 +1717,9 @@ func TestAccWAFV2WebACL_RateBased_forwardedIP(t *testing.T) {
 	})
 }
 
+//---------------------------
+
+// ---------------------------
 func TestAccWAFV2WebACL_RuleGroupReference_basic(t *testing.T) {
 	ctx := acctest.Context(t)
 	var v wafv2.WebACL
@@ -3962,6 +4039,7 @@ resource "aws_wafv2_web_acl" "test" {
 `, name)
 }
 
+// function here
 func testAccWebACLConfig_rateBasedStatementForwardedIP(name, fallbackBehavior, headerName string) string {
 	return fmt.Sprintf(`
 resource "aws_wafv2_web_acl" "test" {
@@ -4066,6 +4144,165 @@ resource "aws_wafv2_web_acl" "test" {
 `, name)
 }
 
+/*
+func testAccWebACLConfig_rateBasedStatementCustomKeys(name, fallbackBehavior, headerName string) string {
+	return fmt.Sprintf(`
+resource "aws_wafv2_web_acl" "test" {
+  name        = %[1]q
+  description = %[1]q
+  scope       = "REGIONAL"
+
+  default_action {
+    block {}
+  }
+
+  rule {
+    name     = "rule-1"
+    priority = 1
+
+    action {
+      count {}
+    }
+
+    statement {
+      rate_based_statement {
+        aggregate_key_type = "CUSTOM_KEYS"
+        forwarded_ip_config {
+          fallback_behavior = %[2]q
+          header_name       = %[3]q
+        }
+        custom_keys {
+          forwarded_ip_config {}
+        }
+
+        custom_keys {
+          header {
+            name = "testheader"
+            text_transformation {
+              priority = 1
+              type     = "NONE"
+            }
+          }
+        }
+
+        custom_keys {
+          cookie {
+            name = "testcookie"
+            text_transformation {
+              priority = 1
+              type     = "NONE"
+            }
+          }
+        }
+        custom_keys {
+          http_method {}
+        }
+
+        custom_keys {
+          label_namespace {
+            namespace = "testnamespace"
+          }
+        }
+        limit = 50000
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = false
+      metric_name                = "friendly-rule-metric-name"
+      sampled_requests_enabled   = false
+    }
+  }
+
+  tags = {
+    Tag1 = "Value1"
+    Tag2 = "Value2"
+  }
+
+  visibility_config {
+    cloudwatch_metrics_enabled = false
+    metric_name                = "friendly-metric-name"
+    sampled_requests_enabled   = false
+  }
+}
+`, name, fallbackBehavior, headerName)
+}
+*/
+
+func testAccWebACLConfig_rateBasedStatementCustomKeys(name, fallbackBehavior, headerName string) string {
+	return fmt.Sprintf(`
+resource "aws_wafv2_web_acl" "test" {
+  name        = %[1]q
+  description = %[1]q
+  scope       = "REGIONAL"
+
+  default_action {
+    block {}
+  }
+
+  rule {
+    name     = "rule-1"
+    priority = 1
+
+    action {
+      count {}
+    }
+
+    statement {
+      rate_based_statement {
+        aggregate_key_type = "CUSTOM_KEYS"
+        forwarded_ip_config {
+          fallback_behavior = %[2]q
+          header_name       = %[3]q
+        }
+        limit = 50000
+      }
+    }
+    
+    visibility_config {
+      cloudwatch_metrics_enabled = false
+      metric_name                = "friendly-rule-metric-name"
+      sampled_requests_enabled   = false
+    }
+  }
+
+  tags = {
+    Tag1 = "Value1"
+    Tag2 = "Value2"
+  }
+
+  visibility_config {
+    cloudwatch_metrics_enabled = false
+    metric_name                = "friendly-metric-name"
+    sampled_requests_enabled   = false
+  }
+}
+`, name, fallbackBehavior, headerName)
+}
+
+/*
+	custom_keys {
+	  forwarded_ip_config {}
+	  header {
+	    name = "testheader"
+	    text_transformation {
+	      priority = 1
+	      type     = "NONE"
+	    }
+	  }
+	  cookie {
+	    name = "testcookie"
+	    text_transformation {
+	      priority = 1
+	      type     = "NONE"
+	    }
+	  }
+	  http_method {}
+	  label_namespace {
+	    namespace = "testnamespace"
+	  }
+	}
+*/
 func testAccWebACLConfig_ruleGroupReferenceStatement(name string) string {
 	return fmt.Sprintf(`
 resource "aws_wafv2_rule_group" "test" {

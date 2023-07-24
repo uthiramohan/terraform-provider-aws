@@ -331,6 +331,234 @@ func xssMatchStatementSchema() *schema.Schema {
 	}
 }
 
+// --------
+func rateLimitHeaderSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeList,
+		Optional: true,
+		MaxItems: 1,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"name": {
+					Type:     schema.TypeString,
+					Required: true,
+					ValidateFunc: validation.All(
+						validation.StringLenBetween(1, 40),
+						// The value is returned in lower case by the API.
+						// Trying to solve it with StateFunc and/or DiffSuppressFunc resulted in hash problem of the rule field or didn't work.
+						validation.StringMatch(regexp.MustCompile(`^[a-z0-9-_]+$`), "must contain only lowercase alphanumeric characters, underscores, and hyphens"),
+					),
+				},
+				"text_transformation": textTransformationSchema(),
+			},
+		},
+	}
+}
+
+func rateLimitCookieSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeList,
+		Optional: true,
+		MaxItems: 1,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"name": {
+					Type:     schema.TypeString,
+					Required: true,
+					ValidateFunc: validation.All(
+						validation.StringLenBetween(1, 40),
+						// The value is returned in lower case by the API.
+						// Trying to solve it with StateFunc and/or DiffSuppressFunc resulted in hash problem of the rule field or didn't work.
+						validation.StringMatch(regexp.MustCompile(`^[a-z0-9-_]+$`), "must contain only lowercase alphanumeric characters, underscores, and hyphens"),
+					),
+				},
+				"text_transformation": textTransformationSchema(),
+			},
+		},
+	}
+}
+
+func rateLimitQueryArgumentSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeList,
+		Optional: true,
+		MaxItems: 1,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"name": {
+					Type:     schema.TypeString,
+					Required: true,
+					ValidateFunc: validation.All(
+						validation.StringLenBetween(1, 40),
+						// The value is returned in lower case by the API.
+						// Trying to solve it with StateFunc and/or DiffSuppressFunc resulted in hash problem of the rule field or didn't work.
+						validation.StringMatch(regexp.MustCompile(`^[a-z0-9-_]+$`), "must contain only lowercase alphanumeric characters, underscores, and hyphens"),
+					),
+				},
+				"text_transformation": textTransformationSchema(),
+			},
+		},
+	}
+}
+
+func rateLimitQueryStringSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeList,
+		Optional: true,
+		MaxItems: 1,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"text_transformation": textTransformationSchema(),
+			},
+		},
+	}
+}
+
+func rateLimitLabelNamespaceSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeList,
+		Optional: true,
+		MaxItems: 1,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"namespace": {
+					Type:     schema.TypeString,
+					Required: true,
+					ValidateFunc: validation.All(
+						validation.StringLenBetween(1, 1024),
+						validation.StringMatch(regexp.MustCompile(`^[0-9A-Za-z_\-:]+:$`), "must contain only alphanumeric, underscore, hyphen, and colon characters"),
+					),
+				},
+			},
+		},
+	}
+}
+
+func rateLimitUriPathSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeList,
+		Optional: true,
+		MaxItems: 1,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"text_transformation": textTransformationSchema(),
+			},
+		},
+	}
+}
+
+//----------------------------------
+/*
+   <!-- This field contains all the advanced rate based custom types .-->
+   <structure name="RateBasedStatementCustomKey">
+       <member name="Header" target="RateLimitHeader" />
+       <member name="Cookie" target="RateLimitCookie" />
+       <member name="QueryArgument" target="RateLimitQueryArgument" />
+       <member name="QueryString" target="RateLimitQueryString" />
+       <member name="HTTPMethod" target="RateLimitHTTPMethod" />
+       <member name="ForwardedIP" target="RateLimitForwardedIP" />
+       <member name="IP" target="RateLimitIP" />
+       <member name="LabelNamespace" target="RateLimitLabelNamespace" />
+       <member name="JA3Hash" target="RateLimitJA3Hash"/>
+       <member name="UriPath" target="RateLimitUriPath" />
+   </structure>
+
+   <list name="RateBasedStatementCustomKeys">
+       <member target="RateBasedStatementCustomKey"/>
+   </list>
+   <length target="RateBasedStatementCustomKeys">
+       <max value="5"/>
+   </length>
+
+   <structure name="RateLimitIP" />
+   <structure name="RateLimitForwardedIP" />
+   <structure name="RateLimitHTTPMethod" />
+
+   <structure name="RateLimitHeader">
+       <member name="Name" target="FieldToMatchData" />
+       <member name="TextTransformations" target="TextTransformations" />
+   </structure>
+   <required target="RateLimitHeader$Name" />
+   <required target="RateLimitHeader$TextTransformations" />
+
+   <structure name="RateLimitCookie">
+       <member name="Name" target="FieldToMatchData" />
+       <member name="TextTransformations" target="TextTransformations" />
+   </structure>
+   <required target="RateLimitCookie$Name" />
+   <required target="RateLimitCookie$TextTransformations" />
+
+   <structure name="RateLimitQueryArgument">
+       <member name="Name" target="FieldToMatchData" />
+       <member name="TextTransformations" target="TextTransformations" />
+   </structure>
+   <required target="RateLimitQueryArgument$Name" />
+   <required target="RateLimitQueryArgument$TextTransformations" />
+
+   <structure name="RateLimitQueryString">
+       <member name="TextTransformations" target="TextTransformations" />
+   </structure>
+   <required target="RateLimitQueryString$TextTransformations" />
+
+
+   <structure name="RateLimitLabelNamespace">
+       <member name="Namespace" target="LabelNamespace" />
+   </structure>
+   <required target="RateLimitLabelNamespace$Namespace" />
+
+   <structure name="RateLimitJA3Hash" >
+       <member name="FallbackBehavior" target="FallbackBehavior" />
+   </structure>
+   <required target="RateLimitJA3Hash$FallbackBehavior" />
+
+   <structure name="RateLimitUriPath">
+       <member name="TextTransformations" target="TextTransformations" />
+   </structure>
+   <required target="RateLimitUriPath$TextTransformations" />
+
+
+   <structure name="RateBasedStatementCustomKey">
+       <member name="Header" target="RateLimitHeader" />
+       <member name="Cookie" target="RateLimitCookie" />
+       <member name="QueryArgument" target="RateLimitQueryArgument" />
+       <member name="QueryString" target="RateLimitQueryString" />
+       <member name="HTTPMethod" target="RateLimitHTTPMethod" />
+       <member name="ForwardedIP" target="RateLimitForwardedIP" />
+       <member name="IP" target="RateLimitIP" />
+       <member name="LabelNamespace" target="RateLimitLabelNamespace" />
+       <member name="JA3Hash" target="RateLimitJA3Hash"/>
+       <member name="UriPath" target="RateLimitUriPath" />
+   </structure>
+*/
+
+func rateBasedStatementCustomKeySchema() *schema.Schema {
+	return &schema.Schema{
+		Type:     schema.TypeList,
+		Optional: true,
+		MinItems: 1,
+		Elem:     rateBasedStatementCustomKeyBaseSchema(),
+	}
+}
+
+// add list ratelimitcustomkeys
+func rateBasedStatementCustomKeyBaseSchema() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"header":          rateLimitHeaderSchema(),
+			"cookie":          rateLimitCookieSchema(),
+			"query_argument":  rateLimitQueryArgumentSchema(),
+			"query_string":    rateLimitQueryStringSchema(),
+			"http_method":     emptySchema(),
+			"forwarded_ip":    emptySchema(),
+			"ip":              emptySchema(),
+			"label_namespace": rateLimitLabelNamespaceSchema(),
+			//"uri_path": emptySchema(),
+		},
+	}
+}
+
+//--------
+
 func fieldToMatchBaseSchema() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
@@ -461,6 +689,9 @@ func forwardedIPConfigSchema() *schema.Schema {
 		},
 	}
 }
+
+//	TextTransformations []*TextTransformation `min:"1" type:"list" required:"true"`
+//	CustomKeys []*RateBasedStatementCustomKey `min:"1" type:"list"`------------------
 
 func textTransformationSchema() *schema.Schema {
 	return &schema.Schema{
@@ -904,6 +1135,7 @@ func rateBasedStatementSchema(level int) *schema.Schema {
 					ValidateFunc: validation.IntBetween(100, 2000000000),
 				},
 				"scope_down_statement": scopeDownStatementSchema(level - 1),
+				"custom_keys":          rateBasedStatementCustomKeySchema(),
 			},
 		},
 	}

@@ -587,6 +587,7 @@ The `rate_based_statement` block supports the following arguments:
 * `forwarded_ip_config` - (Optional) Configuration for inspecting IP addresses in an HTTP header that you specify, instead of using the IP address that's reported by the web request origin. If `aggregate_key_type` is set to `FORWARDED_IP`, this block is required. See [`forwarded_ip_config`](#forwarded_ip_config) below for details.
 * `limit` - (Required) Limit on requests per 5-minute period for a single originating IP address.
 * `scope_down_statement` - (Optional) Optional nested statement that narrows the scope of the rate-based statement to matching web requests. This can be any nestable statement, and you can nest statements at any level below this scope-down statement. See [`statement`](#statement) above for details.
+* `custom_keys` - (Optional) Optional structure that allows non ip keys to aggregate the request counts. See [`custom_keys`](#custom_keys) below for details.
 
 #### `regex_match_statement`
 
@@ -770,6 +771,21 @@ The `ip_set_forwarded_ip_config` block supports the following arguments:
 * `fallback_behavior` - (Required) - Match status to assign to the web request if the request doesn't have a valid IP address in the specified position. Valid values include: `MATCH` or `NO_MATCH`.
 * `header_name` - (Required) - Name of the HTTP header to use for the IP address.
 * `position` - (Required) - Position in the header to search for the IP address. Valid values include: `FIRST`, `LAST`, or `ANY`. If `ANY` is specified and the header contains more than 10 IP addresses, AWS WAFv2 inspects the last 10.
+
+
+#### `custom_keys`
+
+Aggregate using one or more custom aggregation keys. To combine either of the IP address options with other aggregation keys, define them here under custom keys.
+
+The `custom_keys` block supports the following arguments:
+* `header` - (Optional) Use a named header as an aggregation key. 
+* `cookie` - (Optional) Use a named cookie as an aggregation key. 
+* `query_argument` - (Optional) Use a query_argument as an aggregation key. 
+* `query_string` - (Optional) Use a query_string as an aggregation key. 
+* `http_method` - (Optional) Use a http_method as an aggregation key. 
+* `forwarded_ip` - (Optional) Use forwarded_ip as an aggregation key. Requires forwarded_ip_config to be set. 
+* `ip` - (Optional) Use ip aggregation key. 
+* `label_namespace` - (Optional) Use a named namespace as an aggregation key. 
 
 #### `headers`
 
